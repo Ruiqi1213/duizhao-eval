@@ -35,25 +35,33 @@
 
 ## 本地运行
 
-环境：Node.js 22.13+（验证环境为 24），npm。
+环境：Node.js 22.13+（验证环境为 24），npm。公开仓库无需 `.openai/hosting.json`、账号或模型密钥即可使用本地 D1 预览。请只把开发服务绑定到本机。
+
+**Windows PowerShell**：
+
+```powershell
+npm.cmd ci
+$env:WRANGLER_WRITE_LOGS = 'false'
+$env:WRANGLER_LOG_PATH = '.wrangler/logs'
+npx.cmd wrangler d1 migrations apply DB --local --config wrangler.local.json
+npm.cmd run dev -- --hostname 127.0.0.1
+```
+
+**macOS / Linux**：
 
 ```sh
 npm ci
-npm run db:generate
 WRANGLER_WRITE_LOGS=false WRANGLER_LOG_PATH=.wrangler/logs npx wrangler d1 migrations apply DB --local --config wrangler.local.json
-npm run dev
+npm run dev -- --hostname 127.0.0.1
 ```
 
-提交的迁移已经生成；未改动数据库结构时无需再次生成。评测使用 Cloudflare D1。私有部署由 Sites 网关控制访问，首版是单工作区设计，不支持多人隔离；**不能直接移除网关作为公开多人 SaaS 使用**。
+浏览器打开终端给出的本地地址。迁移已提交，无需重新生成。`--local` 只操作本机评测数据库，请勿改成 `--remote`。如遇端口占用，可加 `--port 3001` 并打开终端显示的对应地址。
 
-```sh
-node --test tests/domain.test.mjs
-npx tsc --noEmit
-node tests/api.test.mjs
-npm run build
-```
+- 规则自检：`node --test tests/domain.test.mjs`
+- 类型检查：`npx tsc --noEmit`（PowerShell 可用 `npx.cmd tsc --noEmit`）
+- 接口自检：保持开发服务运行，在第二个终端执行 `node tests/api.test.mjs`。默认端口是 3000，改过端口时通过 `EVAL_TEST_URL` 指向实际本地地址。脚本只允许本地地址，会创建标明“非真实评测”的本地测试实验，不改动内置示例评分。
 
-接口自检需要本地开发服务，会创建标明“非真实评测”的本地测试实验；脚本拒绝向非本地地址写入。测试不会修改内置示例的评分。
+**生产构建**：`npm run build` / `npm start` 仍用于已有 Sites 托管流程。构建需要平台生成的 `.openai/hosting.json`，公开仓库缺少该文件时会明确提示使用本地开发命令。请勿把托管配置提交到公开仓库。私有部署由 Sites 网关控制访问，首版是单工作区设计，**不能直接移除网关作为公开多人 SaaS 使用**。
 
 ## 目录
 
