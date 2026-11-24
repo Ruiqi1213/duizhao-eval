@@ -1,6 +1,6 @@
 'use client';
 import type { PublicExperiment } from '@/lib/eval';
-import { reportMarkdown } from '@/lib/eval';
+import { reportCandidateKey, reportMarkdown } from '@/lib/eval';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -180,7 +180,7 @@ export function EvalReport({
         <div className="panel-head">
           <h2>逐项对照与问题记录</h2>
           <p className="small muted">
-            A / B 在不同任务中随机排列；下表已还原为同一方案顺序。
+            分数按固定方案顺序展示；问题记录保留填写时的候选 A / B。
           </p>
         </div>
         <Table>
@@ -207,6 +207,7 @@ export function EvalReport({
                       </span>
                     ))}
                   </div>
+                  <p className="small muted mb-1">{reportCandidateKey(e, i)}</p>
                   <span className="small">{c.note || '未填写问题说明'}</span>
                 </TableCell>
               </TableRow>

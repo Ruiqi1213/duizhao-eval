@@ -280,6 +280,13 @@ export function publicExperiment(
     })),
   };
 }
+// Completed report cases and public tasks share the experiment's task order.
+export function reportCandidateKey(e: PublicExperiment, caseIndex: number) {
+  if (!e.report) return null;
+  const [a, b] = e.tasks[caseIndex]?.outputs ?? [];
+  if (!a?.modelName || !b?.modelName) return null;
+  return '盲评时：候选 A = ' + a.modelName + '；候选 B = ' + b.modelName;
+}
 export function reportMarkdown(e: PublicExperiment) {
   const r = e.report;
   if (!r) throw Error('完成所有任务后才能导出报告');
@@ -338,13 +345,19 @@ export function reportMarkdown(e: PublicExperiment) {
     '',
     '## 问题记录',
   );
-  for (const c of r.cases)
+  for (const [i, c] of r.cases.entries()) {
+    const candidateKey = reportCandidateKey(e, i);
     lines.push(
       '### ' + c.title,
       c.scores.map((s, i) => r.models[i].name + ' ' + s.toFixed(2)).join(' / '),
+      '',
+    );
+    if (candidateKey) lines.push(candidateKey, '');
+    lines.push(
       '标签：' + (c.flags.join('、') || '无'),
       '说明：' + (c.note || '未填写'),
       '',
     );
+  }
   return lines.join('\n');
 }

@@ -8,6 +8,7 @@ import {
   weighted,
   publicExperiment,
   aggregate,
+  reportCandidateKey,
   reportMarkdown,
 } from '../lib/eval.ts';
 import { exampleInput } from '../lib/example.ts';
@@ -61,6 +62,7 @@ test('未完成所有任务时不可揭晓或导出报告', () => {
   ]);
   assert.equal(p.report, null);
   assert.throws(() => reportMarkdown(p));
+  assert.equal(reportCandidateKey(p, 0), null);
 });
 test('A/B 随机换位后总分仍还原到对应方案', () => {
   const e = make();
@@ -209,4 +211,45 @@ test('导出报告保留来源、分母和结论边界', () => {
   assert.match(md, /4 \/ 4/);
   assert.match(md, /统计显著性/);
   assert.match(md, /未提供/);
+});
+
+test('报告按题显示 A/B 对应关系，并保留原问题说明', () => {
+  const e = make();
+  e.models = ['甲方案', '乙方案'];
+  e.tasks = e.tasks.slice(0, 2);
+  e.tasks[0].title = '任务一';
+  e.tasks[1].title = '任务二';
+  e.tasks[0].order = [0, 1];
+  e.tasks[1].order = [1, 0];
+  const note = '候选 B 写入了原文没有的要求。';
+  const reviews = e.tasks.map((t) =>
+    validateReview(
+      {
+        scores: [
+          [5, 5, 5],
+          [1, 3, 5],
+        ],
+        note,
+        flags: ['无依据补充'],
+      },
+      t.id,
+    ),
+  );
+  const p = publicExperiment(e, reviews);
+  const keys = [
+    '盲评时：候选 A = 甲方案；候选 B = 乙方案',
+    '盲评时：候选 A = 乙方案；候选 B = 甲方案',
+  ];
+  assert.equal(reportCandidateKey(p, 0), keys[0]);
+  assert.equal(reportCandidateKey(p, 1), keys[1]);
+  assert.equal(reportCandidateKey(p, 2), null);
+  const sections = reportMarkdown(p).split('### ').slice(1);
+  assert.equal(sections.length, 2);
+  for (const [i, section] of sections.entries()) {
+    const lines = section.split('\n');
+    assert.equal(lines[0], e.tasks[i].title);
+    assert.ok(lines.includes(keys[i]));
+    assert.ok(!lines.includes(keys[1 - i]));
+    assert.ok(lines.includes('说明：' + note));
+  }
 });
